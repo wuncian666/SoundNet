@@ -1,25 +1,24 @@
 package com.example.SoundNet;
 
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.media.audiofx.AutomaticGainControl;
-import android.util.Log;
+
+import androidx.core.app.ActivityCompat;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 
 public class Record {
-    private static final String TAG = "Record";
-
-    private static final int RECORD_CHANNELS = AudioFormat.CHANNEL_IN_MONO;
-
-    private static final int RECORD_AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT;
-
-    private static final int RECORD_BPP = 16;
+    private final String TAG = this.getClass().getSimpleName();
 
     private AudioRecord audioRecord = null;
+
+    private final Context context;
 
     private final short[] buffer;
 
@@ -29,29 +28,37 @@ public class Record {
 
     public boolean isRecording, isSync, isEnd;
 
-    private final int SYNC_FREQUENCY, END_FREQUENCY;
+    private final Frequency frequency;
 
-    /**
-     * shift, window = 25, (4800 * 2 - 6000 / 25) / (6000 /25) + 1, len symbol = 40
-     */
+    public Record(Context context, Frequency frequency) {
+        this.context = context;
+        this.frequency = frequency;
 
-    public Record(int SYNC_FREQUENCY, int END_FREQUENCY) {
-        this.SYNC_FREQUENCY = SYNC_FREQUENCY;
-        this.END_FREQUENCY = END_FREQUENCY;
-
-        buffer = new short[4800];
-        bufferBytes = new byte[buffer.length * 2];
+        int bufferSize = 4800;
+        buffer = new short[bufferSize];
+        bufferBytes = new byte[bufferSize * 2];
     }
 
     public void onRecord() throws IllegalStateException {
-        // 初始化
         isRecording = false;
         isSync = false;
         isEnd = false;
 
         if (audioRecord == null) {
-            System.out.println("new audio record");
-            audioRecord = new AudioRecord(MediaRecorder.AudioSource.DEFAULT,
+            if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
+            int RECORD_CHANNELS = AudioFormat.CHANNEL_IN_MONO;
+            int RECORD_AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT;
+            audioRecord = new AudioRecord(
+                    MediaRecorder.AudioSource.DEFAULT,
                     Common.DEFAULT_SAMPLE_RATE, RECORD_CHANNELS, RECORD_AUDIO_ENCODING,
                     Common.DEFAULT_SAMPLE_RATE);
         }
@@ -64,24 +71,15 @@ public class Record {
         }
     }
 
-    /**
-     * 開始錄音時，偵測sync頻率以及end頻率
-     */
     public void writeAudioData() {
         audioRecord.read(buffer, 0, buffer.length);
 
-        double[] temp = new double[buffer.length];
-
         if (AudioRecord.ERROR_INVALID_OPERATION != 0) {
-            for (int i = 0; i < buffer.length; i++) {// arrTemp用於偵測sync頻率振幅，除以32768.0為規一化
-                temp[i] = (double) buffer[i] / 32768.0;
-            }
-
-            if (!isSync) {// 偵測sync頻率振幅
-                isSync = checkSync(temp, SYNC_FREQUENCY);
+            double[] audioData = normalization(buffer);
+            if (!isSync) {
+                isSync = checkSync(audioData, frequency.getFreSync());
             } else {
-                // 儲存聲音
-                for (double i : temp) {
+                for (double i : audioData) {
                     rawData.add(i);
                 }
                 ByteBuffer.wrap(bufferBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(buffer);
@@ -89,41 +87,35 @@ public class Record {
         }
     }
 
-    /*第一步檢測SYNC振幅*/
-    private boolean checkSync(double[] data, double freTarget) {
-        boolean isSync = false;
-        // buffer長度4800，分20等份，每一等份容量240
-        double[] temp = new double[240];
-        // 儲存每等份的振幅
-        double[] ampTotal = new double[20];
+    private double[] normalization(short[] data) {
+        double[] result = new double[data.length];
+        for (int i = 0; i < data.length; i++) {
+            result[i] = (data[i] / 32768.0);
+        }
+        return result;
+    }
 
-        for (int i = 0; i < 20; i++) {
-            // 總資料量減去移動量大於檢視視窗
-            if (data.length - i * 240 >= 240) {
-                // 取得shift點的陣列
-                System.arraycopy(data, i * 240, temp, 0, 240);
-                // 計算出shift點的振幅
-                double result = GoertzelDetect.getAmpCarrier(temp, freTarget, 240);
-                // 每個i所求的240點的振幅
+    private boolean checkSync(double[] data, double frequency) {
+        boolean isSync = false;
+
+        int detectFrame = 20;
+        int frameLen = 240;// buffer長度4800，分20等份，每一等份容量240
+        double[] temp = new double[frameLen];
+        double[] ampTotal = new double[detectFrame];
+
+        for (int i = 0; i < detectFrame; i++) {
+            if (data.length - i * frameLen >= frameLen) {
+                System.arraycopy(data, i * frameLen, temp, 0, frameLen);
+                double result = GoertzelDetect.getAmpCarrier(temp, frequency, frameLen);
                 ampTotal[i] = result;
 
                 if (isSync) {
-                    for (int j = 0; j < 240; j++) {
-                        rawData.add(temp[j]);
-                        ByteBuffer.wrap(bufferBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put((short) temp[j]);
-                    }
+                    moveData(temp, frameLen);
                 } else {
                     if (i >= 2) {
-                        // 第一個部分與第二個部分的振幅相加平均大於門檻值
-                        if ((ampTotal[i] + ampTotal[i - 1] + ampTotal[i - 2]) / 3 > Common.THRESHOLD) {
-                            Log.i(TAG, "checkSync: amp" + ampTotal[i] + ", " + ampTotal[i - 1]+ ", " + ampTotal[i - 2]);
-
+                        if (averageEnergy(ampTotal, i) > Common.THRESHOLD) {
                             isSync = true;
-                            // 將這part共240點加入raw data
-                            for (int j = 0; j < 240; j++) {
-                                rawData.add(temp[j]);
-                                ByteBuffer.wrap(bufferBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put((short) temp[j]);
-                            }
+                            moveData(temp, frameLen);
                         }
                     }
                 }
@@ -132,45 +124,43 @@ public class Record {
         return isSync;
     }
 
+    private void moveData(double[] data, int length) {
+        for (int i = 0; i < length; i++) {
+            rawData.add(data[i]);
+            ByteBuffer.wrap(bufferBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put((short) data[i]);
+        }
+    }
+
+    private double averageEnergy(double[] data, int index) {
+        return (data[index] + data[index - 1] + data[index - 2]) / 3;
+    }
+
     public boolean canDemodulate() {
         return rawData.size() > 86400;
     }
 
-    public String getDemodulationResult() {
-        ArrayList<Double> removeSyncData = new ArrayList<>();
+    public ArrayList<Double> getRemoveOffsetData() {
+        ArrayList<Double> data = new ArrayList<>();
+        int offset = 5520;
+        for (int i = 0; i < rawData.size() - offset; i++) {
+            data.add(rawData.get(offset + i));
+        }
+        return data;
+    }
 
-        Demodulate mDemodulate = new Demodulate(20048, 20560, 18000);
-
-//        int syncIndex = mDemodulate.getSyncPosition(rawData, 1, 10) + 5760;
-
-//        for (int i = 0; i < rawData.size() - syncIndex; i++)
-//            removeSyncData.add(rawData.get(syncIndex + i));
-
-        for (int i = 0; i < rawData.size() - 5520; i++)
-            removeSyncData.add(rawData.get(5520 + i));
-
-        String result = mDemodulate.getGoertzelDemodulate(removeSyncData, 18000);
-
-        Log.i(TAG, "getDemodulationResult: " +
-                " raw data: " + rawData.size() +
-                " filter sync data: " + removeSyncData.size() +
-                " result: " + result);
-
-        return result;
+    public String getDemodulationResult(ArrayList<Double> data) {
+        Demodulate mDemodulate = new Demodulate(frequency);
+        return mDemodulate.getGoertzelDemodulate(data, frequency.getFreMin());
     }
 
     public void startRecord() {
         isRecording = true;
-
-        audioRecord.startRecording();// audioRecord API開始錄音
-        System.out.println("開始錄音");
+        audioRecord.startRecording();
 
         if (rawData == null) {
-            rawData = new ArrayList<>();// 紀錄sync頻率後資訊
-            Log.i(TAG, "onRecord: new array");
+            rawData = new ArrayList<>();
         } else {
             rawData.clear();
-            Log.i(TAG, "onRecord: clear array size: " + rawData.size());
         }
     }
 
@@ -179,7 +169,6 @@ public class Record {
             isRecording = false;
 
             if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
-                System.out.println("停止錄音");
                 audioRecord.stop();
                 audioRecord.release();
                 audioRecord = null;

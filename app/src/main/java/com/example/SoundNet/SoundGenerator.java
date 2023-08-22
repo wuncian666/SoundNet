@@ -6,6 +6,8 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.util.Log;
 
+import com.example.SoundNet.WavFile.WavFileHandle;
+
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -15,7 +17,7 @@ import java.util.Arrays;
 
 
 public class SoundGenerator {
-    private static final String TAG = "SoundGenerator";
+    private final String TAG = this.getClass().getSimpleName();
 
     private final double duration = 0.125;
 
@@ -34,39 +36,27 @@ public class SoundGenerator {
     Context context;
 
     int totalSymbol;
-    // 整個音檔
     private final byte[] sound;
-    // 產生的聲音
     private final byte[] generatedSnd = new byte[2 * numSamples + 4088];
 
     public SoundGenerator(String message, Context context) {
-        mWavFileHandle = new WavFileHandle();
-
         this.message = message;
-        Log.i(TAG, "SoundGenerator: " + message);
         this.context = context;
 
-        totalSymbol = message.length() * 2 + 1;// 總字串Sample
+        mWavFileHandle = new WavFileHandle();
 
+        totalSymbol = message.length() * 2 + 1;
         sound = new byte[2 * totalSymbol * numSamples + 4088];
     }
 
-    public void generatorSound() {
-        // 存檔
+    public void generatorSound() throws FileNotFoundException {
         String tempFileName = Common.AUDIO_GENERATOR_FILENAME_RAW;
         String rawFile = mWavFileHandle.getRawFilename(context, tempFileName);
         String folderName = mWavFileHandle.getFolderName(context);
         String wavFile = folderName + Common.AUDIO_GENERATOR_FILENAME_WAV;
 
-        FileOutputStream fileOutputStream = null;
+        FileOutputStream fileOutputStream = new FileOutputStream(rawFile);
 
-        try {
-            fileOutputStream = new FileOutputStream(rawFile);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        // 產生SYNC頻率, 6000
         for (int i = 0; i < numSamples; i++) {
             temp[i] = Math.cos(2 * Math.PI * i * SYNC * SAMPLING_PERIOD);
         }
@@ -96,7 +86,7 @@ public class SoundGenerator {
         int[] encode = encode();// 字串轉為10進制數字
         Log.i(TAG, "generatorSound: encode" + Arrays.toString(encode));
 
-        for (int j =0; j < encode.length; j++) {
+        for (int j = 0; j < encode.length; j++) {
             // 製作6000個該字串的訊號
             int num = encode[j];
             for (int i = 0; i < numSamples; i++) {
@@ -109,7 +99,7 @@ public class SoundGenerator {
             // 6000 short to temp byte
             ByteBuffer.wrap(tempByte).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(buffer);
 
-            System.arraycopy(tempByte, 0, sound, (j+1) * 2 * numSamples, numSamples * 2);
+            System.arraycopy(tempByte, 0, sound, (j + 1) * 2 * numSamples, numSamples * 2);
         }
         Log.i(TAG, "generatorSound: " + sound.length);
 
@@ -124,10 +114,8 @@ public class SoundGenerator {
         mWavFileHandle.copyWaveFile(rawFile, wavFile);
     }
 
-    public short[] HanningWindow(short[] signal_in, int pos, int size)
-    {
-        for (int i = pos; i < pos + size; i++)
-        {
+    public short[] HanningWindow(short[] signal_in, int pos, int size) {
+        for (int i = pos; i < pos + size; i++) {
             int j = i - pos; // j = index into Hanning window function
             signal_in[i] = (short) (signal_in[i] * 0.5 * (1.0 - Math.cos(2.0 * Math.PI * j / size)));
         }

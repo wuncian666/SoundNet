@@ -12,8 +12,6 @@ public class Common {
 
     /**存錄音檔使用函數*/
     public final static String AUDIO_RECORDER_FOLDER = "FSK_AUDIO";
-    public final static String AUDIO_RECORDER_FILENAME_RAW = "RAW_RECORD.raw";
-    public final static String AUDIO_RECORDER_FILENAME_WAV = "WAV_RECORD.wav";
 
     public final static String AUDIO_GENERATOR_FILENAME_RAW = "GENERATOR.raw";
     public final static String AUDIO_GENERATOR_FILENAME_WAV = "GENERATOR.wav";

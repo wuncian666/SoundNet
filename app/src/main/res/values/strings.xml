@@ -1,3 +1,25 @@
 <resources>
     <string name="app_name">SoundNet</string>
+    <string name="permission_obtained">permission obtained</string>
+    <string name="click_twice_to_exit">再點擊一次返回鍵離開程式</string>
+
+
+    <string name="demodulation_result">demodulation result</string>
+    <string name="btn_generate">Generate</string>
+
+    <string name="loop">loop</string>
+    <string name="green_means_running">green means running</string>
+
+    <string name="runtime">runtime</string>
+    <string name="master">Master</string>
+    <string name="slave">Slave</string>
+    <string name="point_to_point">point to point</string>
+
+    <string name="count">count</string>
+    <string name="correct_times">correct times</string>
+    <string name="demodulation_times">demodulation times</string>
+    <string name="time">time</string>
+
+    <string name="enter_message">please enter your message here</string>
+
 </resources>

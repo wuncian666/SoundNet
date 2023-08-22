@@ -11,29 +11,21 @@ import com.example.SoundNet.MainActivity;
 import com.example.SoundNet.R;
 
 public class SoundManager {
-    private static final String TAG = "SoundManager";
+    private final String TAG = this.getClass().getSimpleName();
 
     private final SoundPool mSoundPool;
 
-    public static final int SOUND_COUNT = 3;
+    private final Context context;
 
-    private final int[] mSoundId;
+    private static final int SOUND_COUNT = 3;
 
     public SoundManager(Context context) {
-
+        this.context = context;
         mSoundPool = new SoundPool.Builder().setMaxStreams(SOUND_COUNT).build();
-
-        mSoundId = new int[SOUND_COUNT];
-
-        mSoundId[0] = mSoundPool.load(context, R.raw.ack_1time_have_end_20560, 1);
-
-        mSoundId[1] = mSoundPool.load(context, R.raw.hello_1time_have_end_20560, 1);
-
-        mSoundId[2] = mSoundPool.load(context, R.raw.iotlab_1time_have_end_20560, 1);
     }
 
-    public void playSound(int sound, int loop) {
-        Log.i(TAG, "playSound: " + sound);
-        mSoundPool.play(mSoundId[sound], 1, 1, 1, loop, 1f);
+    public void playSound(int raw, int loop) {
+        int sound = mSoundPool.load(context, raw, 1);
+        mSoundPool.play(sound, 1, 1, 1, loop, 1f);
     }
 }

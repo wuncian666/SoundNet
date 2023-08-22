@@ -1,4 +1,4 @@
-package com.example.SoundNet;
+package com.example.SoundNet.WavFile;
 
 class WavFileException extends Exception {
 

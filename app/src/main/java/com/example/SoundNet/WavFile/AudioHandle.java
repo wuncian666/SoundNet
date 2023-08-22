@@ -1,19 +1,16 @@
-package com.example.SoundNet;
+package com.example.SoundNet.WavFile;
 
 import android.os.Environment;
 import android.util.Log;
 
+import com.example.SoundNet.WavFile.WavFile;
+
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 
 public class AudioHandle {
-    // audio handle 負責讀取wav檔
-
-    private final static String TAG = "AudioHandle";
+    private final String TAG = this.getClass().getSimpleName();
     private WavFile wavfile;
-    private ArrayList<Double> modulated;
 
     public AudioHandle(String filename) {
         try {
@@ -27,7 +24,7 @@ public class AudioHandle {
     }
 
     public ArrayList<Double> read() {
-        modulated = new ArrayList<>();
+        ArrayList<Double> modulated = new ArrayList<>();
         double[] buffer = new double[100];
         int framesRead;
         try {
@@ -55,5 +52,4 @@ public class AudioHandle {
             Log.d("Audio_FSK", e.toString());
         }
     }
-
 }

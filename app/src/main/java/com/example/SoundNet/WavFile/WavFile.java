@@ -1,6 +1,8 @@
-package com.example.SoundNet;
+package com.example.SoundNet.WavFile;
 
 import android.util.Log;
+
+import com.example.SoundNet.WavFileException;
 
 import java.io.*;
 

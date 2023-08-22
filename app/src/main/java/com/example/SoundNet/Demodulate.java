@@ -6,16 +6,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Demodulate {
-    private static final String TAG = "Demodulate";
+    private final String TAG = this.getClass().getSimpleName();
 
-    int SYNC_FREQUENCY, END_FREQUENCY, MIN_FREQUENCY;
+    int fSync, fEnd, fMin;
 
-    public Demodulate(int SYNC_FREQUENCY, int END_FREQUENCY, int MIN_FREQUENCY) {
-        this.SYNC_FREQUENCY = SYNC_FREQUENCY;
-        this.END_FREQUENCY = END_FREQUENCY;
-        this.MIN_FREQUENCY = MIN_FREQUENCY;
-
-        Log.i(TAG, "Demodulate: new class demodulate");
+    public Demodulate(Frequency frequency) {
+        this.fSync = frequency.getFreSync();
+        this.fEnd = frequency.getFreEnd();
+        this.fMin = frequency.getFreMin();
     }
 
     /**取得sync頻率位置，arrRecordTemp: 錄音所有值
@@ -45,7 +43,6 @@ public class Demodulate {
      */
     public String getGoertzelDemodulate(ArrayList<Double> data, int freMin) {
         ArrayList<Integer> decode = new ArrayList<>();
-        // 一個symbol符號6000，總共有多少symbol
         int part = data.size() / Common.NUM_SYMBOL;
 
         double[] temp = new double[data.size()];
@@ -54,42 +51,30 @@ public class Demodulate {
             temp[i] = data.get(i);
         }
 
-        // 16 * 總錄音長度 / 6000 筆資料
         double[][] s = new double[16][part];
 
-        // FSK頻率16進制
         int[] fsk = new int[16];
         for (int i = 0; i < 16; i++) {
             fsk[i] = freMin + 128 * i;
         }
 
         for (int j = 0; j < 16; j++) {
-            // 取得goertzel 振幅
             s[j] = GoertzelDetect.getArrCarrier(temp, (fsk[j]), 1, 1, part);
-//            Log.i(TAG, "getGoertzelDemodulate: " + "s[" + j + "] = " + Arrays.toString(s[j]));
         }
 
         double[] symbolAmp = new double[16];
 
-        // 尋找每個symbol 0,1 第一個symbol
         for (int i = 0; i < part; i++) {
-            // 每個symbol的fsk振幅
             for (int j = 0; j < 16; j++) {
                 symbolAmp[j] = s[j][i];
                 Log.i(TAG, "getGoertzelDemodulate: symbol Amp[" + j + "] = " + s[j][i]);
             }
 
-            // 尋找最大值
             int maxIndex = findMaxInDemodulation(symbolAmp, 16);
 
             if (maxIndex != -1) {
-                // 每個頻率所對應最大值存入decode
-
                 decode.add(maxIndex);
                 Log.i(TAG, "getGoertzelDemodulate: arrDecode[" + i + "]= " + maxIndex);
-            } else {
-//                break;
-                // 沒有資料
             }
         }
 
@@ -113,17 +98,15 @@ public class Demodulate {
     public int findMaxInDemodulation(double[] arr, int length) {
         int index = 0;
         double max = 0;
-
         for (int i = 0; i < length; i++) {
-            // 計算每個頻率的最大振幅
-            // arr[i] = s[j][ii]
             if (arr[i] > max) {
                 max = arr[i];
                 index = i;
             }
         }
-        // 最大值小於門檻
-        if (max < Common.THRESHOLD) index = -1;
+        if (max < Common.THRESHOLD) {
+            index = -1;
+        }
         return index;
     }
 }

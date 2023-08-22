@@ -23,7 +23,6 @@ public class PlayMusic implements Runnable {
         mMediaPlayer = MediaPlayer.create(context, R.raw.iotlab_1time_have_end_20560);
     }
 
-
     public void play() {
         if (!mMediaPlayer.isPlaying()) {
             Log.i(TAG, "play: ");

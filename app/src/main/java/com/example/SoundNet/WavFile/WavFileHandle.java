@@ -1,8 +1,10 @@
-package com.example.SoundNet;
+package com.example.SoundNet.WavFile;
 
 import android.content.Context;
 import android.util.Log;
 
+
+import com.example.SoundNet.Common;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -19,7 +21,7 @@ public class WavFileHandle {
         FileOutputStream out;
 
         long audioTotalLen, dataTotalLen;
-        long byteRate =  RECORD_BPP * Common.DEFAULT_SAMPLE_RATE * RECORD_CHANNELS / 8;
+        long byteRate = (long) RECORD_BPP * Common.DEFAULT_SAMPLE_RATE * RECORD_CHANNELS / 8;
 
         try {
             in = new FileInputStream(inFilename);
