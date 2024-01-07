@@ -1,12 +1,15 @@
 package com.example.SoundNet;
 
-import static com.example.SoundNet.MainActivity.array;
 
 import android.content.Context;
 
+import com.example.SoundNet.Config.AudioConfig;
 import com.example.SoundNet.MusicControl.SoundManager;
+import com.example.SoundNet.Utils.AudioProcessingUtils;
+import com.example.SoundNet.Utils.Demodulate;
 import com.example.SoundNet.WavFile.WavFileHandle;
 
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,27 +22,28 @@ public class ReceiveProcess {
 
     private ProcessState state;
 
-    int receiveTimes = 0;
-    long slaveCorrectTime = 0;
-
     public PublishSubject<String> demodulationResult = PublishSubject.create();
 
-    Record mRecord;
-    Context context;
-    WavFileHandle mWavFileHandle;
-    SoundManager mSoundManager;
+    private final Record record;
+    private final WavFileHandle wavFileHandle;
+    private final SoundManager soundManger;
+    private final FileOutputStream fileOutputStream;
 
-    int numWavFile;
+    private int numWavFile;
 
-    public ReceiveProcess(Context context) {
-        this.context = context;
+    private final String rawFilename, wavFilename;
 
-        Frequency frequency = new Frequency(18000, 20048, 20560);
-        mRecord = new Record(context, frequency);
+    public ReceiveProcess(Context context) throws FileNotFoundException {
+        record = new Record(context);
 
-        mWavFileHandle = new WavFileHandle();
+        wavFileHandle = new WavFileHandle();
 
-        mSoundManager = new SoundManager(context);
+        soundManger = new SoundManager(context);
+
+        rawFilename = wavFileHandle.getRawFilename(context, "temp.raw");
+        wavFilename = wavFileHandle.getFolderName(context) + "temp.wav";
+
+        fileOutputStream = new FileOutputStream(rawFilename);
 
         numWavFile = 0;
     }
@@ -49,46 +53,52 @@ public class ReceiveProcess {
     }
 
     public void process() throws IOException {
+        boolean canDemodulate = false;
+        boolean isSync;
+
         while (isReceiving) {
-            mRecord.onRecord();
-            mRecord.startRecord();
+            record.create();
+            record.start();
 
             numWavFile++;
 
-            FileOutputStream fileOutputStream = new FileOutputStream(getRawFilename());
+            long startTime = System.currentTimeMillis();
 
-            long tStartRecord = System.currentTimeMillis();
+            while (record.isRecording()) {
+                record.writeAudioData();
 
-            while (mRecord.isRecording) {
-                mRecord.writeAudioData();
+                isSync = record.isSync();
 
-                if (mRecord.isSync) {
-                    fileOutputStream.write(mRecord.bufferBytes);
+                if (isSync) {
+                    fileOutputStream.write(record.bufferBytes);
                 }
 
-                if (mRecord.canDemodulate()) {
-                    receiveTimes++;
-                    break;
-                }
-
-                if (masterTimeout(tStartRecord)) {
+                canDemodulate = Demodulate.canDemodulate(record.getRecordSize());
+                if (AudioProcessingUtils.masterTimeout(startTime, state, isSync) || canDemodulate) {
                     break;
                 }
             }
 
             fileOutputStream.close();
-            mRecord.stopRecord();
+            record.stop();
 
-            if (mRecord.canDemodulate()) {
-                mWavFileHandle.copyWaveFile(getRawFilename(), getWavFileName());
+            if (canDemodulate) {
+                wavFileHandle.copyWaveFile(rawFilename, wavFilename);
 
-                ArrayList<Double> data = mRecord.getRemoveOffsetData();
-                String result = mRecord.getDemodulationResult(data);
+                ArrayList<Double> data = AudioProcessingUtils.getRemoveOffsetData(record.getRecordData());
+                String result = this.getDemodulationResult(data);
                 demodulationResult.onNext(result);
-                playMusic(result);
-                initFileNum();
+
+                this.playMusic(result);
+
+                if (numWavFile > 10) numWavFile = 0;
             }
         }
+    }
+
+    private String getDemodulationResult(ArrayList<Double> data) {
+        Demodulate demodulate = new Demodulate();
+        return demodulate.getGoertzelDemodulate(data);
     }
 
     public void stopReceive() {
@@ -99,62 +109,15 @@ public class ReceiveProcess {
         isReceiving = true;
     }
 
-    public boolean isReceiving() {
-        return isReceiving;
-    }
-
-    private String getRawFilename() {
-        String tempFilename = numWavFile + ".raw";
-        return mWavFileHandle.getRawFilename(context, tempFilename);
-    }
-
-    private String getWavFileName() {
-        String folderName = mWavFileHandle.getFolderName(context);
-        return folderName + numWavFile + ".wav";
-    }
-    private boolean masterTimeout(long tStart) {
-        int timeout = 2;
-        long tSpend = (System.currentTimeMillis() - tStart) / 1000;
-        return (state == ProcessState.MASTER) && tSpend > timeout && !mRecord.isSync;
-    }
-
-    private void initFileNum() {
-        if (numWavFile >= 10) {
-            numWavFile = 0;
-        }
-    }
-
-    public void playMusic(String result) {
-        if (result != null) {
-            if (state == ProcessState.MASTER) {
-                if (result.equals("60")) {// 60 is ACK
-                    mSoundManager.playSound(R.raw.hello_1time_have_end_20560, 0);
-                }
-            } else {
-                if (checkResultInArray(result)) {
-                    slaveCorrectTime++;
-                    mSoundManager.playSound(R.raw.ack_1time_have_end_20560, 0);
-                }
+    private void playMusic(String result) {
+        if (state == ProcessState.MASTER) {
+            if (result.equals(AudioConfig.ACK)) {
+                soundManger.playHelloSound();
+            }
+        } else {
+            if (AudioProcessingUtils.checkResultInArray(result)) {
+                soundManger.playAckSound();
             }
         }
-    }
-
-    private boolean checkResultInArray(String result) {
-        boolean isCorrect = false;
-        if (result != null) {
-            for (String s : array) {
-                if (result.equals(s)) {
-                    isCorrect = true;
-                    break;
-                }
-            }
-        }
-        return isCorrect;
-    }
-
-    enum ProcessState {
-        MASTER,
-        SLAVE,
-        NONE
     }
 }

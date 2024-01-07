@@ -1,8 +1,10 @@
-package com.example.SoundNet;
+package com.example.SoundNet.AudioPlayer;
 
 import android.content.Context;
 import android.media.MediaPlayer;
 import android.util.Log;
+
+import com.example.SoundNet.R;
 
 import java.io.IOException;
 
@@ -35,7 +37,6 @@ public class PlayMusic implements Runnable {
                     playMusicTimes++;
 //                    mMediaPlayer.release();
                     Log.i(TAG, "onCompletion: " + playMusicTimes);
-                    updateUi(context);
                     // 播放
 
                     if (playMusicTimes > 300) {
@@ -59,15 +60,5 @@ public class PlayMusic implements Runnable {
                 e.printStackTrace();
             }
         }
-    }
-
-    public void updateUi(Context context) {
-        // 主線程更新UI
-        ((MainActivity) context).runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                ((MainActivity) context).textPlayMusicTimes.setText(String.valueOf(playMusicTimes));
-            }
-        });
     }
 }

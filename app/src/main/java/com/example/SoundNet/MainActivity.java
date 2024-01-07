@@ -1,8 +1,8 @@
 package com.example.SoundNet;
 
-import static com.example.SoundNet.ReceiveProcess.ProcessState.MASTER;
-import static com.example.SoundNet.ReceiveProcess.ProcessState.NONE;
-import static com.example.SoundNet.ReceiveProcess.ProcessState.SLAVE;
+import static com.example.SoundNet.ProcessState.MASTER;
+import static com.example.SoundNet.ProcessState.NONE;
+import static com.example.SoundNet.ProcessState.SLAVE;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -13,14 +13,15 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
+
+import com.example.SoundNet.AudioPlayer.SoundGenerator;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -30,25 +31,60 @@ import io.reactivex.schedulers.Schedulers;
 public class MainActivity extends AppCompatActivity {
     private final String TAG = this.getClass().getSimpleName();
 
-    public static final String[] array = {"HELLO!", "IOTLAB"};
-
-    TextView textResult, textPlayMusicTimes, textAppDuration, textCountCorrect, textCountDemodulation;
+    TextView textResult, textAppDuration, textCountCorrect, textCountDemodulation;
 
     EditText editMessage;
 
-    private Switch switchMaster, switchSlave, switchPTP;
+    private SwitchCompat switchMaster, switchSlave, switchPTP;
 
-    private DisposableObserver<String> mObserver;
+    private DisposableObserver<String> receiveObserver;
 
-    ReceiveProcess rec;
+    ReceiveProcess receiveProcess = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        requestPermissions();
+        this.requestPermissions();
+        this.findViewById();
+        this.receiveProcess();
+        this.switchListener();
+    }
 
+    private void receiveProcess() {
+        try {
+            receiveProcess = new ReceiveProcess(this);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
+        Observable<String> receiveObservable = Observable.fromCallable(() -> {
+            receiveProcess.process();
+            return null;
+        });
+
+        receiveObserver = new DisposableObserver<String>() {
+            @Override
+            public void onNext(String s) {
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                Log.e(TAG, "onError: " + e.toString());
+            }
+
+            @Override
+            public void onComplete() {
+            }
+        };
+
+        receiveObservable.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(receiveObserver);
+    }
+
+    private void findViewById() {
         editMessage = findViewById(R.id.edit_message);
 
         textResult = findViewById(R.id.tv_result);
@@ -59,60 +95,34 @@ public class MainActivity extends AppCompatActivity {
         switchMaster = findViewById(R.id.switch_master);
         switchSlave = findViewById(R.id.switch_slave);
         switchPTP = findViewById(R.id.switch_ptp);
+    }
 
-        rec = new ReceiveProcess(this);
-
-        Observable<String> mObservable = Observable.fromCallable(() -> {
-            rec.process();
-            return null;
-        });
-
-        mObserver = new DisposableObserver<String>() {
-            @Override
-            public void onNext(String s) {
-
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                Log.e(TAG, "onError: " + e.toString());
-            }
-
-            @Override
-            public void onComplete() {
-
-            }
-        };
-
-        mObservable.subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(mObserver);
-
+    private void switchListener() {
         switchMaster.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (!(switchSlave.isChecked() ||switchPTP.isChecked())) {
+            if (!(switchSlave.isChecked() || switchPTP.isChecked())) {
                 switchProcess(isChecked, MASTER);
             }
         });
 
         switchSlave.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (!(switchMaster.isChecked() ||switchPTP.isChecked())) {
+            if (!(switchMaster.isChecked() || switchPTP.isChecked())) {
                 switchProcess(isChecked, SLAVE);
             }
         });
 
         switchPTP.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (!(switchSlave.isChecked() ||switchMaster.isChecked())) {
+            if (!(switchSlave.isChecked() || switchMaster.isChecked())) {
                 switchProcess(isChecked, NONE);
             }
         });
     }
 
-    private void switchProcess(boolean isChecked, ReceiveProcess.ProcessState state) {
+    private void switchProcess(boolean isChecked, ProcessState state) {
         if (isChecked) {
-            rec.stopReceive();
+            receiveProcess.stopReceive();
         } else {
-            rec.setState(state);
-            rec.startReceive();
+            receiveProcess.setState(state);
+            receiveProcess.startReceive();
         }
     }
 
@@ -122,14 +132,6 @@ public class MainActivity extends AppCompatActivity {
         SoundGenerator soundGenerator = new SoundGenerator(message, this);
         soundGenerator.generatorSound();
         soundGenerator.playSound();
-    }
-
-    private void processSwitch() {
-        if (rec.isReceiving()) {
-            rec.startReceive();
-        } else {
-            rec.stopReceive();
-        }
     }
 
     @Override
@@ -184,9 +186,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        receiveObserver.dispose();
         super.onDestroy();
-
-        mObserver.dispose();
     }
 
     private boolean isFirstFinish = true;

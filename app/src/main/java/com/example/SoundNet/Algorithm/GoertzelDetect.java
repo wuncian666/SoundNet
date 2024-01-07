@@ -1,9 +1,11 @@
-package com.example.SoundNet;
+package com.example.SoundNet.Algorithm;
+
+import com.example.SoundNet.Config.AudioConfig;
 
 public class GoertzelDetect {
     public static double getAmpCarrier(double[] arrX, double freTarget, int lenX) {
 
-        int k = (int) (0.5 + lenX * freTarget / Common.DEFAULT_SAMPLE_RATE);
+        int k = (int) (0.5 + lenX * freTarget / AudioConfig.DEFAULT_SAMPLE_RATE);
         double w = 2 * Math.PI * k / lenX;
         double cosine = Math.cos(w);
         double coe = 2 * cosine;
@@ -21,8 +23,8 @@ public class GoertzelDetect {
     }
 
     public static double[] getArrCarrier(double[] rawData, double freTarget, int facWindow, int facShift, int part) {
-        int nWindow = Common.NUM_SYMBOL / facWindow;
-        int nShift = Common.NUM_SYMBOL / facShift;
+        int nWindow = AudioConfig.NUM_SYMBOL / facWindow;
+        int nShift = AudioConfig.NUM_SYMBOL / facShift;
 
         double[] temp = new double[nWindow];
 

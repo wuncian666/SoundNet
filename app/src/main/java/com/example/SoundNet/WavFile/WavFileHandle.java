@@ -4,7 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 
-import com.example.SoundNet.Common;
+import com.example.SoundNet.Config.AudioConfig;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,7 +21,7 @@ public class WavFileHandle {
         FileOutputStream out;
 
         long audioTotalLen, dataTotalLen;
-        long byteRate = (long) RECORD_BPP * Common.DEFAULT_SAMPLE_RATE * RECORD_CHANNELS / 8;
+        long byteRate = (long) RECORD_BPP * AudioConfig.DEFAULT_SAMPLE_RATE * RECORD_CHANNELS / 8;
 
         try {
             in = new FileInputStream(inFilename);
@@ -50,25 +50,25 @@ public class WavFileHandle {
     public String getFolderName(Context context) {
         String root = context.getExternalFilesDir(null).getAbsolutePath();
         // 創建資料夾
-        File folder = new File(root, Common.AUDIO_RECORDER_FOLDER);
+        File folder = new File(root, AudioConfig.AUDIO_RECORDER_FOLDER);
 
         if (!folder.exists()) {
             folder.mkdirs();
         }
 
-        return (folder.getAbsolutePath() + "/");
+        return (folder.getAbsolutePath() + File.separator);
     }
 
     public String getRawFilename(Context context, String audioTempFile) {
         String root = context.getExternalFilesDir(null).getAbsolutePath();
 
-        File folder = new File(root, Common.AUDIO_RECORDER_FOLDER);
+        File folder = new File(root, AudioConfig.AUDIO_RECORDER_FOLDER);
         if (!folder.exists()) folder.mkdirs();
 
-        File tempFile = new File(root, audioTempFile);
+        File tempFile = new File(folder, audioTempFile);
         if (tempFile.exists()) tempFile.delete();
 
-        return (folder.getAbsolutePath() + "/" + audioTempFile);
+        return (folder.getAbsolutePath() + File.separator + audioTempFile);
     }
 
     private void writeWaveFileHeader(FileOutputStream out, long totalAudioLen,
@@ -99,19 +99,19 @@ public class WavFileHandle {
         header[19] = 0;
         header[20] = 1; // format = 1
         header[21] = 0;
-        header[22] = (byte) Common.RECORDER_CHANNELS_INT;
+        header[22] = (byte) AudioConfig.RECORDER_CHANNELS_INT;
         header[23] = 0;
-        header[24] = (byte) ((long) Common.DEFAULT_SAMPLE_RATE & 0xff);
-        header[25] = (byte) (((long) Common.DEFAULT_SAMPLE_RATE >> 8) & 0xff);
-        header[26] = (byte) (((long) Common.DEFAULT_SAMPLE_RATE >> 16) & 0xff);
-        header[27] = (byte) (((long) Common.DEFAULT_SAMPLE_RATE >> 24) & 0xff);
+        header[24] = (byte) ((long) AudioConfig.DEFAULT_SAMPLE_RATE & 0xff);
+        header[25] = (byte) (((long) AudioConfig.DEFAULT_SAMPLE_RATE >> 8) & 0xff);
+        header[26] = (byte) (((long) AudioConfig.DEFAULT_SAMPLE_RATE >> 16) & 0xff);
+        header[27] = (byte) (((long) AudioConfig.DEFAULT_SAMPLE_RATE >> 24) & 0xff);
         header[28] = (byte) (byteRate & 0xff);
         header[29] = (byte) ((byteRate >> 8) & 0xff);
         header[30] = (byte) ((byteRate >> 16) & 0xff);
         header[31] = (byte) ((byteRate >> 24) & 0xff);
-        header[32] = (byte) (Common.RECORDER_CHANNELS_INT * Common.RECORDER_BPP / 8); // block align
+        header[32] = (byte) (AudioConfig.RECORDER_CHANNELS_INT * AudioConfig.RECORDER_BPP / 8); // block align
         header[33] = 0;
-        header[34] = Common.RECORDER_BPP; // bits per sample
+        header[34] = AudioConfig.RECORDER_BPP; // bits per sample
         header[35] = 0;
         header[36] = 'd';
         header[37] = 'a';

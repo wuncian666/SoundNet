@@ -1,4 +1,4 @@
-package com.example.SoundNet;
+package com.example.SoundNet.AudioPlayer;
 
 import android.content.Context;
 import android.media.AudioFormat;
@@ -6,6 +6,7 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.util.Log;
 
+import com.example.SoundNet.Config.AudioConfig;
 import com.example.SoundNet.WavFile.WavFileHandle;
 
 import java.io.FileNotFoundException;
@@ -21,9 +22,9 @@ public class SoundGenerator {
 
     private final double duration = 0.125;
 
-    private final int numSamples = (int) (duration * Common.DEFAULT_SAMPLE_RATE);// 訊號個數: 6000
+    private final int numSamples = (int) (duration * AudioConfig.DEFAULT_SAMPLE_RATE);// 訊號個數: 6000
 
-    private final double SAMPLING_PERIOD = (double) 1 / Common.DEFAULT_SAMPLE_RATE;
+    private final double SAMPLING_PERIOD = (double) 1 / AudioConfig.DEFAULT_SAMPLE_RATE;
 
     private final double[] temp = new double[numSamples];
 
@@ -50,10 +51,10 @@ public class SoundGenerator {
     }
 
     public void generatorSound() throws FileNotFoundException {
-        String tempFileName = Common.AUDIO_GENERATOR_FILENAME_RAW;
+        String tempFileName = AudioConfig.AUDIO_GENERATOR_FILENAME_RAW;
         String rawFile = mWavFileHandle.getRawFilename(context, tempFileName);
         String folderName = mWavFileHandle.getFolderName(context);
-        String wavFile = folderName + Common.AUDIO_GENERATOR_FILENAME_WAV;
+        String wavFile = folderName + AudioConfig.AUDIO_GENERATOR_FILENAME_WAV;
 
         FileOutputStream fileOutputStream = new FileOutputStream(rawFile);
 
@@ -80,7 +81,7 @@ public class SoundGenerator {
         // 產生FSK頻率
         int[] fsk = new int[16];// fsk頻率對應
         for (int i = 0; i < 16; i++) {
-            fsk[i] = Common.MIN_FREQUENCY + 128 * i;
+            fsk[i] = AudioConfig.MIN_FREQUENCY + 128 * i;
         }
 
         int[] encode = encode();// 字串轉為10進制數字
@@ -124,10 +125,10 @@ public class SoundGenerator {
 
     public void generator() {
         // 存檔
-        String tempFileName = Common.AUDIO_GENERATOR_FILENAME_RAW;
+        String tempFileName = AudioConfig.AUDIO_GENERATOR_FILENAME_RAW;
         String rawFile = mWavFileHandle.getRawFilename(context, tempFileName);
         String folderName = mWavFileHandle.getFolderName(context);
-        String wavFile = folderName + Common.AUDIO_GENERATOR_FILENAME_WAV;
+        String wavFile = folderName + AudioConfig.AUDIO_GENERATOR_FILENAME_WAV;
 
         FileOutputStream fileOutputStream = null;
 
@@ -197,7 +198,7 @@ public class SoundGenerator {
 
     public void playSound() {
         final AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
-                Common.DEFAULT_SAMPLE_RATE, AudioFormat.CHANNEL_CONFIGURATION_MONO,
+                AudioConfig.DEFAULT_SAMPLE_RATE, AudioFormat.CHANNEL_CONFIGURATION_MONO,
                 AudioFormat.ENCODING_PCM_16BIT, (int) sound.length, AudioTrack.MODE_STATIC);
         audioTrack.write(sound, 0, sound.length);
         audioTrack.setVolume(AudioTrack.getMaxVolume());

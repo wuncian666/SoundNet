@@ -1,19 +1,20 @@
-package com.example.SoundNet;
+package com.example.SoundNet.Utils;
 
 import android.util.Log;
 
+import com.example.SoundNet.Algorithm.GoertzelDetect;
+import com.example.SoundNet.Config.AudioConfig;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class Demodulate {
     private final String TAG = this.getClass().getSimpleName();
 
-    int fSync, fEnd, fMin;
+    public Demodulate() {
+    }
 
-    public Demodulate(Frequency frequency) {
-        this.fSync = frequency.getFreSync();
-        this.fEnd = frequency.getFreEnd();
-        this.fMin = frequency.getFreMin();
+    public static boolean canDemodulate(int size) {
+        return size > AudioConfig.MAX_DEMODULATE_SIZE;
     }
 
     /**取得sync頻率位置，arrRecordTemp: 錄音所有值
@@ -41,9 +42,9 @@ public class Demodulate {
     /**
      * 將recSignal陣列的值做goertzel演算法計算，return 解調字串
      */
-    public String getGoertzelDemodulate(ArrayList<Double> data, int freMin) {
+    public String getGoertzelDemodulate(ArrayList<Double> data) {
         ArrayList<Integer> decode = new ArrayList<>();
-        int part = data.size() / Common.NUM_SYMBOL;
+        int part = data.size() / AudioConfig.NUM_SYMBOL;
 
         double[] temp = new double[data.size()];
 
@@ -55,7 +56,7 @@ public class Demodulate {
 
         int[] fsk = new int[16];
         for (int i = 0; i < 16; i++) {
-            fsk[i] = freMin + 128 * i;
+            fsk[i] = AudioConfig.MIN_FREQUENCY + 128 * i;
         }
 
         for (int j = 0; j < 16; j++) {
@@ -104,7 +105,7 @@ public class Demodulate {
                 index = i;
             }
         }
-        if (max < Common.THRESHOLD) {
+        if (max < AudioConfig.THRESHOLD) {
             index = -1;
         }
         return index;
