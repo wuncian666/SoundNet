@@ -7,7 +7,6 @@
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
-.DS_Store
 /build
 /captures
 .externalNativeBuild
@@ -19,6 +18,7 @@
 *.aab
 /build
 /app/build
+/app/release
 
 # Gradle快取
 .gradle/
