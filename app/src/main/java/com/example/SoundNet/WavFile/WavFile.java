@@ -2,21 +2,15 @@ package com.example.SoundNet.WavFile;
 
 import android.util.Log;
 
-import com.example.SoundNet.WavFileException;
-
 import java.io.*;
 
 public class WavFile {
     private static final String TAG = "WaveFile";
-
-    private enum IOState {READING, WRITING, CLOSED};
     private final static int BUFFER_SIZE = 4096;
-
     private final static int FMT_CHUNK_ID = 0x20746D66;
     private final static int DATA_CHUNK_ID = 0x61746164;
     private final static int RIFF_CHUNK_ID = 0x46464952;
     private final static int RIFF_TYPE_ID = 0x45564157;
-
     private File file;						// File that will be read from or written to
     private IOState ioState;				// Specifies the IO State of the Wav File (used for snaity checking)
     private int bytesPerSample;			// Number of bytes required to store a single sample
@@ -26,53 +20,21 @@ public class WavFile {
     private double floatScale;				// Scaling factor used for int <-> float conversion
     private double floatOffset;			// Offset factor used for int <-> float conversion
     private boolean wordAlignAdjust;		// Specify if an extra byte at the end of the data chunk is required for word alignment
-
     // Wav Header
     private int numChannels;				// 2 bytes unsigned, 0x0001 (1) to 0xFFFF (65,535)
     private long sampleRate;				// 4 bytes unsigned, 0x00000001 (1) to 0xFFFFFFFF (4,294,967,295)
     // Although a java int is 4 bytes, it is signed, so need to use a long
     private int blockAlign;					// 2 bytes unsigned, 0x0001 (1) to 0xFFFF (65,535)
     private int validBits;					// 2 bytes unsigned, 0x0002 (2) to 0xFFFF (65,535)
-
     // Buffering
-    private byte[] buffer;					// Local buffer used for IO
+    private final byte[] buffer;					// Local buffer used for IO
     private int bufferPointer;				// Points to the current position in local buffer
     private int bytesRead;					// Bytes read after last read into local buffer
     private long frameCounter;				// Current number of frames read or written
-
-
-
-
-
     // Cannot instantiate WavFile directly, must either use newWavFile() or openWavFile()
     private WavFile()
     {
         buffer = new byte[BUFFER_SIZE];
-    }
-
-    public int getNumChannels()
-    {
-        return numChannels;
-    }
-
-    public long getNumFrames()
-    {
-        return numFrames;
-    }
-
-    public long getFramesRemaining()
-    {
-        return numFrames - frameCounter;
-    }
-
-    public long getSampleRate()
-    {
-        return sampleRate;
-    }
-
-    public int getValidBits()
-    {
-        return validBits;
     }
 
     public static WavFile newWavFile(File file, int numChannels, long numFrames, int validBits, long sampleRate) throws IOException, WavFileException
@@ -258,7 +220,7 @@ public class WavFile {
                 // Check if we've found the format chunk,
                 // If not, throw an exception as we need the format information
                 // before we can read the data chunk
-                if (foundFormat == false) throw new WavFileException("Data chunk found before Format chunk");
+                if (!foundFormat) throw new WavFileException("Data chunk found before Format chunk");
 
                 // Check that the chunkSize (wav data length) is a multiple of the
                 // block align (bytes per frame)
@@ -280,7 +242,7 @@ public class WavFile {
         }
 
         // Throw an exception if no data chunk has been found
-        if (foundData == false) throw new WavFileException("Did not find a data chunk");
+        if (!foundData) throw new WavFileException("Did not find a data chunk");
 
         // Calculate the scaling factor for converting to a normalised double
         if (wavFile.validBits > 8)
@@ -329,6 +291,31 @@ public class WavFile {
         }
     }
 
+    public int getNumChannels()
+    {
+        return numChannels;
+    }
+
+    public long getNumFrames()
+    {
+        return numFrames;
+    }
+
+    public long getFramesRemaining()
+    {
+        return numFrames - frameCounter;
+    }
+
+    public long getSampleRate()
+    {
+        return sampleRate;
+    }
+
+    public int getValidBits()
+    {
+        return validBits;
+    }
+
     // Sample Writing and Reading
     // --------------------------
     private void writeSample(long val) throws IOException
@@ -365,7 +352,7 @@ public class WavFile {
 
             int v = buffer[bufferPointer];
             if (b < bytesPerSample-1 || bytesPerSample == 1) v &= 0xFF;
-            val += v << (b * 8);
+            val += (long) v << (b * 8);
 
             bufferPointer ++;
         }
@@ -661,7 +648,6 @@ public class WavFile {
         return numFramesToWrite;
     }
 
-
     public void close() throws IOException
     {
         // Close the input stream and set to null
@@ -701,4 +687,6 @@ public class WavFile {
         out.printf("Sample Rate: %d, Block Align: %d\n", sampleRate, blockAlign);
         out.printf("Valid Bits: %d, Bytes per sample: %d\n", validBits, bytesPerSample);
     }
+
+private enum IOState {READING, WRITING, CLOSED}
 }

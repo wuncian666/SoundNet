@@ -1,5 +1,6 @@
 package com.example.SoundNet;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.media.AudioFormat;
@@ -7,119 +8,113 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.media.audiofx.AutomaticGainControl;
 import android.util.Log;
-
 import androidx.core.app.ActivityCompat;
-
 import com.example.SoundNet.Config.AudioConfig;
 import com.example.SoundNet.Utils.AudioDetect;
 import com.example.SoundNet.Utils.AudioProcessingUtils;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class Record {
-    private final String TAG = this.getClass().getSimpleName();
+  private static final String TAG = Record.class.getSimpleName();
+  public final byte[] bufferBytes;
+  private final Context context;
+  private final short[] buffer;
+  private final ArrayList<Double> rawData;
+  private AudioRecord audioRecord;
+  private boolean isRecording, isSync;
 
-    private AudioRecord audioRecord = null;
+  public Record(Context context) {
+    this.context = context;
+    int bufferSize = AudioConfig.BUFFER_SIZE;
+    buffer = new short[bufferSize];
+    bufferBytes = new byte[bufferSize * 2];
+    rawData = new ArrayList<>(); // 初始化，避免null
+  }
 
-    private final Context context;
+  public ArrayList<Double> getRecordData() {
+    return new ArrayList<>(rawData); // 返回副本，避免外部修改
+  }
 
-    private final short[] buffer;
+  public int getRecordSize() {
+    return rawData.size();
+  }
 
-    public final byte[] bufferBytes;
+  public boolean isRecording() {
+    return isRecording;
+  }
 
-    private ArrayList<Double> rawData;
+  public boolean isSync() {
+    return isSync;
+  }
 
-    private boolean isRecording, isSync;
-
-    public Record(Context context) {
-        this.context = context;
-
-        int bufferSize = AudioConfig.BUFFER_SIZE;
-        buffer = new short[bufferSize];
-        bufferBytes = new byte[bufferSize * 2];
+  public void create() throws IllegalStateException {
+    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
+        != PackageManager.PERMISSION_GRANTED) {
+      Log.e(TAG, "Audio recording permission denied");
+      throw new IllegalStateException("Audio recording permission required");
     }
 
-    public ArrayList<Double> getRecordData() {
-        return rawData;
+    isRecording = false;
+    isSync = false;
+
+    if (audioRecord == null) {
+      audioRecord =
+          new AudioRecord(
+              MediaRecorder.AudioSource.DEFAULT,
+              AudioConfig.DEFAULT_SAMPLE_RATE,
+              AudioFormat.CHANNEL_IN_MONO,
+              AudioFormat.ENCODING_PCM_16BIT,
+              AudioConfig.DEFAULT_SAMPLE_RATE);
+
+      if (AutomaticGainControl.isAvailable()) {
+        AutomaticGainControl agc = AutomaticGainControl.create(audioRecord.getAudioSessionId());
+        agc.setEnabled(false);
+      } else {
+        Log.w(TAG, "Automatic Gain Control not available");
+      }
+    }
+  }
+
+  public void writeAudioData() {
+    if (audioRecord == null || !isRecording) return;
+
+    int read = audioRecord.read(buffer, 0, buffer.length);
+    if (read <= 0) {
+      Log.w(TAG, "No audio data read: " + read);
+      return;
     }
 
-    public int getRecordSize() {
-        return rawData.size();
+    double[] audioData = AudioProcessingUtils.normalization(buffer);
+    if (!isSync) {
+      isSync = AudioDetect.checkSync(audioData);
+    } else {
+      rawData.addAll(Arrays.stream(audioData).boxed().collect(Collectors.toList()));
+      ByteBuffer.wrap(bufferBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(buffer);
     }
+  }
 
-    public boolean isRecording() {
-        return isRecording;
+  public void start() {
+    if (audioRecord == null) {
+      Log.e(TAG, "AudioRecord not initialized");
+      return;
     }
+    isRecording = true;
+    audioRecord.startRecording();
+    rawData.clear();
+    Log.d(TAG, "Recording started");
+  }
 
-    public boolean isSync() {
-        return isSync;
+  public void stop() {
+    if (audioRecord != null && isRecording) {
+      isRecording = false;
+      audioRecord.stop();
+      audioRecord.release();
+      audioRecord = null;
+      Log.d(TAG, "Recording stopped and resources released");
     }
-
-    public void create() throws IllegalStateException {
-        isRecording = false;
-        isSync = false;
-
-        if (audioRecord == null) {
-            if (ActivityCompat.
-                    checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO)
-                    != PackageManager.PERMISSION_GRANTED) {
-                return;
-            }
-
-            audioRecord = new AudioRecord(
-                    MediaRecorder.AudioSource.DEFAULT,
-                    AudioConfig.DEFAULT_SAMPLE_RATE,
-                    AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    AudioConfig.DEFAULT_SAMPLE_RATE);
-        }
-
-        if (AutomaticGainControl.isAvailable()) {
-            AutomaticGainControl automaticGain = AutomaticGainControl.create(audioRecord.getAudioSessionId());
-            automaticGain.setEnabled(false);
-        } else {
-            Log.e(TAG, "create: AUTOMATIC GAIN CONTROL NOT AVAILABLE");
-        }
-    }
-
-    public void writeAudioData() {
-        audioRecord.read(buffer, 0, buffer.length);
-
-        double[] audioData = AudioProcessingUtils.normalization(buffer);
-
-        if (!isSync) {
-            isSync = AudioDetect.checkSync(audioData);
-        } else {
-            for (double i : audioData) {
-                rawData.add(i);
-            }
-
-            ByteBuffer.wrap(bufferBytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(buffer);
-        }
-    }
-
-    public void start() {
-        isRecording = true;
-        audioRecord.startRecording();
-
-        if (rawData == null) {
-            rawData = new ArrayList<>();
-        } else {
-            rawData.clear();
-        }
-    }
-
-    public void stop() {
-        if (null != audioRecord) {
-            isRecording = false;
-
-            if (audioRecord.getState() == AudioRecord.STATE_INITIALIZED) {
-                audioRecord.stop();
-                audioRecord.release();
-                audioRecord = null;
-            }
-        }
-    }
+  }
 }

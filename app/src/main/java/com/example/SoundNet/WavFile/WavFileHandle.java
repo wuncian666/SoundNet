@@ -2,127 +2,143 @@ package com.example.SoundNet.WavFile;
 
 import android.content.Context;
 import android.util.Log;
-
-
 import com.example.SoundNet.Config.AudioConfig;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 public class WavFileHandle {
-    public final static String TAG = "WavFileHandle";
-    int RECORD_CHANNELS = 1;
-    int RECORD_BPP = 16;
+  private static final String TAG = "WavFileHandle";
+  private static final int BUFFER_SIZE = 4096; // 4KB緩衝區
+  private static final int WAV_HEADER_SIZE = 44; // 標準WAV頭部大小
+  private static final int BYTE_RATE =
+      AudioConfig.RECORDER_BPP
+          * AudioConfig.DEFAULT_SAMPLE_RATE
+          * AudioConfig.RECORDER_CHANNELS_INT
+          / 8;
+  private static final int BLOCK_ALIGN =
+      AudioConfig.RECORDER_CHANNELS_INT * AudioConfig.RECORDER_BPP / 8;
 
-    public void copyWaveFile(String inFilename, String outFilename) {
-        FileInputStream in;
-        FileOutputStream out;
-
-        long audioTotalLen, dataTotalLen;
-        long byteRate = (long) RECORD_BPP * AudioConfig.DEFAULT_SAMPLE_RATE * RECORD_CHANNELS / 8;
-
-        try {
-            in = new FileInputStream(inFilename);
-            out = new FileOutputStream(outFilename);
-            audioTotalLen = in.getChannel().size();
-            dataTotalLen = audioTotalLen + 36;
-
-            // 產生標頭檔
-            writeWaveFileHeader(out, audioTotalLen, dataTotalLen, byteRate);
-
-            byte[] bytes = new byte[600];
-            //ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(buffer);
-            while (in.read(bytes) != -1) {
-                out.write(bytes);
-            }
-
-            in.close();
-            out.close();
-
-            Log.i(TAG, "copyWaveFile: " + "\nwav: " + outFilename + "\nraw: " + inFilename);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+  /**
+   * 將原始音頻數據轉換為WAV檔案。
+   *
+   * @param inFilename 輸入原始檔案路徑
+   * @param outFilename 輸出WAV檔案路徑
+   * @throws IOException 如果檔案操作失敗
+   */
+  public void copyWaveFile(String inFilename, String outFilename) throws IOException {
+    if (inFilename == null || outFilename == null) {
+      throw new IllegalArgumentException("File paths cannot be null");
     }
 
-    public String getFolderName(Context context) {
-        String root = context.getExternalFilesDir(null).getAbsolutePath();
-        // 創建資料夾
-        File folder = new File(root, AudioConfig.AUDIO_RECORDER_FOLDER);
-
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-
-        return (folder.getAbsolutePath() + File.separator);
+    File inputFile = new File(inFilename);
+    if (!inputFile.exists()) {
+      throw new IOException("Input file does not exist: " + inFilename);
     }
 
-    public String getRawFilename(Context context, String audioTempFile) {
-        String root = context.getExternalFilesDir(null).getAbsolutePath();
+    long audioTotalLen = inputFile.length();
+    long dataTotalLen = audioTotalLen + WAV_HEADER_SIZE - 8; // 減去RIFF和fmt的8字節
 
-        File folder = new File(root, AudioConfig.AUDIO_RECORDER_FOLDER);
-        if (!folder.exists()) folder.mkdirs();
+    try (FileInputStream inputStream = new FileInputStream(inFilename);
+        FileOutputStream outputStream = new FileOutputStream(outFilename)) {
+      // 寫入WAV頭部
+      writeWaveFileHeader(outputStream, audioTotalLen, dataTotalLen);
 
-        File tempFile = new File(folder, audioTempFile);
-        if (tempFile.exists()) tempFile.delete();
+      // 複製音頻數據
+      byte[] buffer = new byte[BUFFER_SIZE];
+      int bytesRead;
+      while ((bytesRead = inputStream.read(buffer)) != -1) {
+        outputStream.write(buffer, 0, bytesRead);
+      }
 
-        return (folder.getAbsolutePath() + File.separator + audioTempFile);
+      Log.i(TAG, "WAV file created: " + outFilename + " from raw: " + inFilename);
+    }
+  }
+
+  /**
+   * 獲取音頻檔案儲存的資料夾路徑。
+   *
+   * @param context 應用上下文
+   * @return 資料夾路徑（以分隔符結尾）
+   */
+  public String getFolderName(Context context) {
+    if (context == null) {
+      throw new IllegalArgumentException("Context cannot be null");
     }
 
-    private void writeWaveFileHeader(FileOutputStream out, long totalAudioLen,
-                                     long totalDataLen, long byteRate)
-            throws IOException {
-        Log.i(TAG, "writeWaveFileHeader: add wav header");
-        byte[] header = new byte[4088];
+    File folder = new File(context.getExternalFilesDir(null), AudioConfig.AUDIO_RECORDER_FOLDER);
+    if (!folder.exists() && !folder.mkdirs()) {
+      Log.w(TAG, "Failed to create folder: " + folder.getAbsolutePath());
+    }
+    return folder.getAbsolutePath() + File.separator;
+  }
 
-        header[0] = 'R'; // RIFF/WAVE header
-        header[1] = 'I';
-        header[2] = 'F';
-        header[3] = 'F';
-        header[4] = (byte) (totalDataLen & 0xff);
-        header[5] = (byte) ((totalDataLen >> 8) & 0xff);
-        header[6] = (byte) ((totalDataLen >> 16) & 0xff);
-        header[7] = (byte) ((totalDataLen >> 24) & 0xff);
-        header[8] = 'W';
-        header[9] = 'A';
-        header[10] = 'V';
-        header[11] = 'E';
-        header[12] = 'f'; // 'fmt ' chunk
-        header[13] = 'm';
-        header[14] = 't';
-        header[15] = ' ';
-        header[16] = 16; // 4 bytes: size of 'fmt ' chunk
-        header[17] = 0;
-        header[18] = 0;
-        header[19] = 0;
-        header[20] = 1; // format = 1
-        header[21] = 0;
-        header[22] = (byte) AudioConfig.RECORDER_CHANNELS_INT;
-        header[23] = 0;
-        header[24] = (byte) ((long) AudioConfig.DEFAULT_SAMPLE_RATE & 0xff);
-        header[25] = (byte) (((long) AudioConfig.DEFAULT_SAMPLE_RATE >> 8) & 0xff);
-        header[26] = (byte) (((long) AudioConfig.DEFAULT_SAMPLE_RATE >> 16) & 0xff);
-        header[27] = (byte) (((long) AudioConfig.DEFAULT_SAMPLE_RATE >> 24) & 0xff);
-        header[28] = (byte) (byteRate & 0xff);
-        header[29] = (byte) ((byteRate >> 8) & 0xff);
-        header[30] = (byte) ((byteRate >> 16) & 0xff);
-        header[31] = (byte) ((byteRate >> 24) & 0xff);
-        header[32] = (byte) (AudioConfig.RECORDER_CHANNELS_INT * AudioConfig.RECORDER_BPP / 8); // block align
-        header[33] = 0;
-        header[34] = AudioConfig.RECORDER_BPP; // bits per sample
-        header[35] = 0;
-        header[36] = 'd';
-        header[37] = 'a';
-        header[38] = 't';
-        header[39] = 'a';
-        header[40] = (byte) (totalAudioLen & 0xff);
-        header[41] = (byte) ((totalAudioLen >> 8) & 0xff);
-        header[42] = (byte) ((totalAudioLen >> 16) & 0xff);
-        header[43] = (byte) ((totalAudioLen >> 24) & 0xff);
-
-        out.write(header, 0, 4088);
+  /**
+   * 獲取原始音頻檔案的完整路徑，若檔案存在則可選擇是否刪除。
+   *
+   * @param context 應用上下文
+   * @param audioTempFile 臨時檔案名稱
+   * @param deleteIfExists 是否刪除已存在的檔案
+   * @return 檔案路徑
+   */
+  public String getRawFilename(Context context, String audioTempFile, boolean deleteIfExists) {
+    if (context == null || audioTempFile == null) {
+      throw new IllegalArgumentException("Context or filename cannot be null");
     }
 
+    File folder = new File(context.getExternalFilesDir(null), AudioConfig.AUDIO_RECORDER_FOLDER);
+    if (!folder.exists() && !folder.mkdirs()) {
+      Log.w(TAG, "Failed to create folder: " + folder.getAbsolutePath());
+    }
+
+    File tempFile = new File(folder, audioTempFile);
+    if (deleteIfExists && tempFile.exists() && !tempFile.delete()) {
+      Log.w(TAG, "Failed to delete existing file: " + tempFile.getAbsolutePath());
+    }
+
+    return tempFile.getAbsolutePath();
+  }
+
+  // 重載方法，保持與原程式碼兼容
+  public String getRawFilename(Context context, String audioTempFile) {
+    return getRawFilename(context, audioTempFile, true);
+  }
+
+  /**
+   * 寫入WAV檔案頭部。
+   *
+   * @param outputStream 輸出流
+   * @param totalAudioLen 音頻數據長度
+   * @param totalDataLen 總數據長度（含頭部）
+   * @throws IOException 如果寫入失敗
+   */
+  private void writeWaveFileHeader(
+      FileOutputStream outputStream, long totalAudioLen, long totalDataLen) throws IOException {
+    ByteBuffer header = ByteBuffer.allocate(WAV_HEADER_SIZE).order(ByteOrder.LITTLE_ENDIAN);
+
+    // RIFF chunk
+    header.put(new byte[] {'R', 'I', 'F', 'F'});
+    header.putInt((int) totalDataLen); // 文件總長度 - 8
+    header.put(new byte[] {'W', 'A', 'V', 'E'});
+
+    // fmt chunk
+    header.put(new byte[] {'f', 'm', 't', ' '});
+    header.putInt(16); // fmt chunk大小
+    header.putShort((short) 1); // 格式（PCM = 1）
+    header.putShort((short) AudioConfig.RECORDER_CHANNELS_INT); // 通道數
+    header.putInt(AudioConfig.DEFAULT_SAMPLE_RATE); // 採樣率
+    header.putInt(BYTE_RATE); // 位元率
+    header.putShort((short) BLOCK_ALIGN); // 塊對齊
+    header.putShort((short) AudioConfig.RECORDER_BPP); // 位元深度
+
+    // data chunk
+    header.put(new byte[] {'d', 'a', 't', 'a'});
+    header.putInt((int) totalAudioLen); // 音頻數據長度
+
+    outputStream.write(header.array());
+    Log.d(TAG, "WAV header written, size: " + WAV_HEADER_SIZE);
+  }
 }

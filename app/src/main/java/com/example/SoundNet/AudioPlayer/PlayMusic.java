@@ -9,56 +9,53 @@ import com.example.SoundNet.R;
 import java.io.IOException;
 
 public class PlayMusic implements Runnable {
-    private static final String TAG = "PlayMusic";
+  private static final String TAG = "PlayMusic";
 
-    public boolean stopPlay = false;
+  public boolean stopPlay = false;
+  public int playMusicTimes = 0;
+  MediaPlayer mMediaPlayer;
+  Context context;
 
-    MediaPlayer mMediaPlayer;
+  public PlayMusic(Context context) {
+    this.context = context;
+    mMediaPlayer = new MediaPlayer();
+    mMediaPlayer = MediaPlayer.create(context, R.raw.iotlab_1time_have_end_20560);
+  }
 
-    Context context;
+  public void play() {
+    if (!mMediaPlayer.isPlaying()) {
+      Log.i(TAG, "play: ");
 
-    public int playMusicTimes = 0;
+      mMediaPlayer.start();
 
-    public PlayMusic(Context context) {
-        this.context = context;
-        mMediaPlayer = new MediaPlayer();
-        mMediaPlayer = MediaPlayer.create(context, R.raw.iotlab_1time_have_end_20560);
-    }
+      mMediaPlayer.setOnCompletionListener(
+          new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+              playMusicTimes++;
+              //                    mMediaPlayer.release();
+              Log.i(TAG, "onCompletion: " + playMusicTimes);
+              // 播放
 
-    public void play() {
-        if (!mMediaPlayer.isPlaying()) {
-            Log.i(TAG, "play: ");
-
-            mMediaPlayer.start();
-
-            mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mp) {
-                    playMusicTimes++;
-//                    mMediaPlayer.release();
-                    Log.i(TAG, "onCompletion: " + playMusicTimes);
-                    // 播放
-
-                    if (playMusicTimes > 300) {
-                        stopPlay = true;
-                    }
-                }
-            });
-        }
-    }
-
-
-    @Override
-    public void run() {
-        while (!stopPlay) {
-            // 播放音樂
-            play();
-
-            try {
-                Thread.sleep(4000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+              if (playMusicTimes > 300) {
+                stopPlay = true;
+              }
             }
-        }
+          });
     }
+  }
+
+  @Override
+  public void run() {
+    while (!stopPlay) {
+      // 播放音樂
+      play();
+
+      try {
+        Thread.sleep(4000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
 }
