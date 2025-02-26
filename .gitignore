@@ -12,3 +12,46 @@
 /captures
 .externalNativeBuild
 .cxx
+# 構建產物
+*.apk
+*.aar
+*.ap_
+*.aab
+/build
+/app/build
+
+# Gradle快取
+.gradle/
+
+# 中間檔案與緩存
+*.iml
+.idea/
+local.properties
+*.log
+
+# 編譯器與調試檔案
+*.class
+*.dex
+*.jar
+*.hprof
+*.prof
+
+# 本地配置文件
+.DS_Store
+Thumbs.db
+*.swp
+
+# 測試與臨時檔案
+*.bak
+*.tmp
+*.temp
+
+# 專案特定的生成檔案
+*.wav
+*.raw
+
+# Android Studio快取與索引
+captures/
+.navigation/
+out/
+generated/
