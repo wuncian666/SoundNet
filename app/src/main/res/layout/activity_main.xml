@@ -1,232 +1,212 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:orientation="vertical"
+    android:background="#F5F5F5"
     tools:context=".MainActivity">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- 結果顯示區 -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/result_card"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/edit_message"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="4dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="30dp"
-            android:autoSizeTextType="uniform"
-            android:text="@string/demodulation_result"
-            app:layout_constraintBottom_toTopOf="@id/tv_result"
-            app:layout_constraintEnd_toEndOf="@+id/tv_result"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="@+id/tv_result"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="1.0" />
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tv_result"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:autoSizeTextType="uniform"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintDimensionRatio="8:1"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.133" />
+            <TextView
+                android:id="@+id/title_demodulation_result"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/demodulation_result"
+                android:textAppearance="?attr/textAppearanceHeadline6"
+                android:textColor="#212121"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
 
-        <TextView
-            android:id="@+id/text_run_time"
-            android:layout_width="0dp"
-            android:layout_height="30dp"
-            android:layout_marginStart="16dp"
-            android:autoSizeTextType="uniform"
-            android:text="@string/runtime"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/tv_app_duration"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.44" />
+            <TextView
+                android:id="@+id/tv_result"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textAppearance="?attr/textAppearanceBody1"
+                android:textColor="#757575"
+                app:layout_constraintTop_toBottomOf="@id/title_demodulation_result"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
 
-        <TextView
-            android:id="@+id/tv_app_duration"
-            android:layout_width="80dp"
-            android:layout_height="0dp"
-            android:layout_gravity="center"
-            android:layout_marginEnd="16dp"
-            android:autoSizeTextType="uniform"
-            android:text="@string/time"
-            app:layout_constraintBottom_toBottomOf="@+id/text_run_time"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/text_run_time"
-            app:layout_constraintVertical_bias="0.0" />
+            <TextView
+                android:id="@+id/text_demodulation_count"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/demodulation_times"
+                android:textAppearance="?attr/textAppearanceBody2"
+                android:textColor="#212121"
+                app:layout_constraintTop_toBottomOf="@id/tv_result"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/tv_count_demodulation" />
 
-        <TextView
-            android:id="@+id/textView4"
-            android:layout_width="0dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:layout_marginStart="16dp"
-            android:autoSizeTextType="uniform"
-            android:text="@string/correct_times"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/tv_count_correct"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.35" />
+            <TextView
+                android:id="@+id/tv_count_demodulation"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:text="@string/count"
+                android:textAppearance="?attr/textAppearanceBody2"
+                android:textColor="#757575"
+                app:layout_constraintTop_toTopOf="@id/text_demodulation_count"
+                app:layout_constraintEnd_toEndOf="parent" />
 
-        <TextView
-            android:id="@+id/tv_count_demodulation"
-            android:layout_width="80dp"
-            android:layout_height="0dp"
-            android:layout_marginEnd="16dp"
-            android:autoSizeTextType="uniform"
-            android:text="@string/count"
-            app:layout_constraintBottom_toBottomOf="@+id/text_demodulation_count"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/text_demodulation_count"
-            app:layout_constraintVertical_bias="0.0" />
+            <TextView
+                android:id="@+id/textView4"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/correct_times"
+                android:textAppearance="?attr/textAppearanceBody2"
+                android:textColor="#212121"
+                app:layout_constraintTop_toBottomOf="@id/text_demodulation_count"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/tv_count_correct" />
 
-        <TextView
-            android:id="@+id/text_demodulation_count"
-            android:layout_width="0dp"
-            android:layout_height="30dp"
-            android:layout_marginStart="16dp"
-            android:autoSizeTextType="uniform"
-            android:text="@string/demodulation_times"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/tv_count_demodulation"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.265" />
+            <TextView
+                android:id="@+id/tv_count_correct"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:text="@string/count"
+                android:textAppearance="?attr/textAppearanceBody2"
+                android:textColor="#757575"
+                app:layout_constraintTop_toTopOf="@id/textView4"
+                app:layout_constraintEnd_toEndOf="parent" />
 
-        <TextView
-            android:id="@+id/tv_count_correct"
-            android:layout_width="80dp"
-            android:layout_height="0dp"
-            android:layout_marginEnd="16dp"
-            android:autoSizeTextType="uniform"
-            android:text="@string/count"
-            app:layout_constraintBottom_toBottomOf="@+id/textView4"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/textView4"
-            app:layout_constraintVertical_bias="0.0" />
+            <TextView
+                android:id="@+id/text_run_time"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/runtime"
+                android:textAppearance="?attr/textAppearanceBody2"
+                android:textColor="#212121"
+                app:layout_constraintTop_toBottomOf="@id/textView4"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/tv_app_duration" />
 
-        <TextView
-            android:id="@+id/textView7"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="16dp"
-            android:autoSizeTextType="uniform"
-            android:text="@string/point_to_point"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/switch_ptp"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.85" />
+            <TextView
+                android:id="@+id/tv_app_duration"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:text="@string/time"
+                android:textAppearance="?attr/textAppearanceBody2"
+                android:textColor="#757575"
+                app:layout_constraintTop_toTopOf="@id/text_run_time"
+                app:layout_constraintEnd_toEndOf="parent" />
 
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switch_master"
-            android:layout_width="80dp"
-            android:layout_height="0dp"
-            android:layout_marginEnd="32dp"
-            app:layout_constraintBottom_toBottomOf="@id/textView5"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/textView5"
-            app:layout_constraintVertical_bias="0.0" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.cardview.widget.CardView>
 
-        <TextView
-            android:id="@+id/textView6"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="16dp"
-            android:autoSizeTextType="uniform"
-            android:text="@string/slave"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/switch_slave"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.736" />
+    <!-- 控制開關區 -->
+    <TextView
+        android:id="@+id/textView5"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="24dp"
+        android:text="@string/master"
+        android:textAppearance="?attr/textAppearanceBody1"
+        android:textColor="#212121"
+        app:layout_constraintTop_toBottomOf="@id/result_card"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/switch_master" />
 
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switch_slave"
-            android:layout_width="80dp"
-            android:layout_height="0dp"
-            android:layout_marginEnd="32dp"
-            app:layout_constraintBottom_toBottomOf="@id/textView6"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/textView6"
-            app:layout_constraintVertical_bias="0.0" />
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/switch_master"
+        android:layout_width="80dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintTop_toTopOf="@id/textView5"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switch_ptp"
-            android:layout_width="80dp"
-            android:layout_height="0dp"
-            android:layout_marginEnd="32dp"
-            app:layout_constraintBottom_toBottomOf="@id/textView7"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/textView7"
-            app:layout_constraintVertical_bias="0.0" />
+    <TextView
+        android:id="@+id/textView6"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/slave"
+        android:textAppearance="?attr/textAppearanceBody1"
+        android:textColor="#212121"
+        app:layout_constraintTop_toBottomOf="@id/textView5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/switch_slave" />
 
-        <TextView
-            android:id="@+id/textView5"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="16dp"
-            android:autoSizeTextType="uniform"
-            android:text="@string/master"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/switch_master"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.62" />
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/switch_slave"
+        android:layout_width="80dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintTop_toTopOf="@id/textView6"
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <TextView
+        android:id="@+id/textView7"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/point_to_point"
+        android:textAppearance="?attr/textAppearanceBody1"
+        android:textColor="#212121"
+        app:layout_constraintTop_toBottomOf="@id/textView6"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/switch_ptp" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/switch_ptp"
+        android:layout_width="80dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintTop_toTopOf="@id/textView7"
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- 輸入框和按鈕區 -->
     <EditText
         android:id="@+id/edit_message"
         android:layout_width="0dp"
         android:layout_height="48dp"
-        android:layout_gravity="center"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="16dp"
+        android:padding="8dp"
         android:hint="@string/enter_message"
+        android:background="@drawable/edit_text_rounded"
+        android:textAppearance="?attr/textAppearanceBody1"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/button"
-        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.98" />
+        app:layout_constraintEnd_toStartOf="@id/button" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/button"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:onClick="btn_generate"
+        android:layout_height="48dp"
+        android:layout_marginEnd="16dp"
         android:text="@string/btn_generate"
-        app:layout_constraintBottom_toBottomOf="@+id/edit_message"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.949"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/edit_message"
-        app:layout_constraintVertical_bias="0.0" />
+        android:onClick="btn_generate"
+        android:backgroundTint="#6200EE"
+        android:textColor="#FFFFFF"
+        app:cornerRadius="8dp"
+        app:layout_constraintBottom_toBottomOf="@id/edit_message"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
